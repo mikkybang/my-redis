@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io"
 
 	// Uncomment this block to pass the first stage
 	"net"
@@ -26,22 +28,30 @@ func main() {
 			fmt.Println("Error accepting connection: ", err.Error())
 			os.Exit(1)
 		}
+		fmt.Println("Entering into func")
 		go handleRequest(conn)
 	}
 }
 
 func handleRequest(c net.Conn) {
+	defer c.Close()
 	buffer := make([]byte, 1024)
-	n, readErr := c.Read(buffer)
-	if readErr != nil {
-		fmt.Println("Failed To read connection")
-		os.Exit(1)
-	}
-	fmt.Printf("Received Message: %s", buffer[:n])
+	for {
+		n, readErr := c.Read(buffer)
+		if errors.Is(readErr, io.EOF) {
+			fmt.Println("eof")
+			break
+		}
+		if readErr != nil {
+			fmt.Println("Failed To read connection")
+			os.Exit(1)
+		}
+		fmt.Printf("Received Message: %s", buffer[:n])
 
-	_, write_err := c.Write([]byte("+PONG\r\n"))
-	if write_err != nil {
-		fmt.Println("failed:", write_err)
-		os.Exit(1)
+		_, write_err := c.Write([]byte("+PONG\r\n"))
+		if write_err != nil {
+			fmt.Println("failed:", write_err)
+			os.Exit(1)
+		}
 	}
 }
