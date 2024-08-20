@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	// Uncomment this block to pass the first stage
 	"net"
 	"os"
@@ -18,9 +19,29 @@ func main() {
 		fmt.Println("Failed to bind to port 6379")
 		os.Exit(1)
 	}
-	_, err = l.Accept()
-	if err != nil {
-		fmt.Println("Error accepting connection: ", err.Error())
+
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			fmt.Println("Error accepting connection: ", err.Error())
+			os.Exit(1)
+		}
+		go handleRequest(conn)
+	}
+}
+
+func handleRequest(c net.Conn) {
+	buffer := make([]byte, 1024)
+	n, readErr := c.Read(buffer)
+	if readErr != nil {
+		fmt.Println("Failed To read connection")
+		os.Exit(1)
+	}
+	fmt.Printf("Received Message: %s", buffer[:n])
+
+	_, write_err := c.Write([]byte("+PONG\r\n"))
+	if write_err != nil {
+		fmt.Println("failed:", write_err)
 		os.Exit(1)
 	}
 }
